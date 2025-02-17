@@ -137,4 +137,30 @@ const updateTask = async (req, res) => {
     }
 }
 
-export { getTasks, getTaskById, createTask, updateTask };
+// DELETE TASK
+
+const deleteTask = async (req, res) => {
+    try {
+        const taskId = req.params.taskId;
+        if (!taskId) {
+            return res.status(404).send({
+                success: false,
+                message: "Please Provide Task Id or Valid Task Id",
+            });
+        }
+        await db.query(`DELETE FROM tasks WHERE id =?`, [taskId]);
+        res.status(200).send({
+            success: true,
+            message: "Task deleted successfully",
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({
+            success: false,
+            message: "Error in Delete Task API",
+            error
+        });
+    }
+}
+
+export { getTasks, getTaskById, createTask, updateTask, deleteTask };
