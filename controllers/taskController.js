@@ -1,20 +1,32 @@
 import db from "../config/db.js";
 
-// GET ALL TASK LIST WITH PAGINATION IF PAGE NO. IS PROVIDED
+// GET ALL TASK LIST WITH PAGINATION IF PAGE NO. IS PROVIDED AND ADD ABILITY TO FILTER TASKS BY TITLE OR STATUS USING QUERY PARAMETERS
 const getTasks = async (req, res) => {
     try {
         const pageNo = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
         const startIndex = (pageNo - 1) * limit;
-        const data = await db.query(`SELECT * FROM tasks LIMIT ${limit} OFFSET ${startIndex}`);
+        const title = req.query.title ? `%${req.query.title}%` : '%';
+        const status = req.query.status ? `%${req.query.status}%` : '%';
+
+        let query = `SELECT * FROM tasks WHERE title LIKE ? AND status LIKE ?`;
+        let queryParams = [title, status];
+
+        if (req.query.page || req.query.limit) {
+            query += ` LIMIT ? OFFSET ?`;
+            queryParams.push(limit, startIndex);
+        }
+        const [rows] = await db.query(query, queryParams);
+        
         res.status(200).send({
             success: true,
             message: "Task List",
-            totalTasks: data[0].length,
-            data: data[0]
+            data: rows,
+            totalTasks: rows.length,
+            currentPage: pageNo
         });
     } catch (error) {
-        console.log(error);
+        console.error(error);
         res.status(500).send({
             success: false,
             message: "Error in Get All Task API",
