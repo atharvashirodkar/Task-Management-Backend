@@ -36,7 +36,7 @@ const getTaskById = async (req, res) => {
                 message: "Invalid or Provide Task Id",
             });
         }
-        const data = await db.query("SELECT * FROM tasks WHERE id =?", [taskId]);
+        const data = await db.query(`SELECT * FROM tasks WHERE id =?`, [taskId]);
         if (!data[0][0]) {
             return res.status(404).send({
                 success: false,
@@ -62,18 +62,18 @@ const getTaskById = async (req, res) => {
 
 const createTask = async (req, res) => {
     try {
-        const {title, description, status} = req.body;
-        if ( !title ||!description || !status) {
+        const { title, description, status } = req.body;
+        if (!title || !description || !status) {
             return res.status(400).send({
                 success: false,
                 message: "All fields are required"
             });
         }
         const data = await db.query(
-            "INSERT INTO tasks (title, description, status) VALUES (?,?,?)",
+            `INSERT INTO tasks (title, description, status) VALUES (?,?,?)`,
             [title, description, status]
         );
-        if(!data){
+        if (!data) {
             return res.status(404).send({
                 success: false,
                 message: "Error in INSERT QUERY"
@@ -94,4 +94,47 @@ const createTask = async (req, res) => {
     }
 };
 
-export { getTasks, getTaskById, createTask };
+// UPDATE TASK
+
+const updateTask = async (req, res) => {
+    try {
+        const taskId = req.params.taskId;
+        if (!taskId) {
+            res.status(404).send({
+                success: false,
+                message: "Invalid or Provide Task Id",
+            });
+        }
+        const { title, description, status } = req.body;
+        // at least one task requires
+        if (!title && !description && !status) {
+            return res.status(400).send({
+                success: false,
+                message: "At least one field is required to update the task"
+            });
+        }
+
+
+        const data = await db.query(`UPDATE tasks SET title =?, description =?, status =? WHERE id =?`, [title, description, status, taskId]);
+        if (!data) {
+            res.status(500).send({
+                success: false,
+                message: "Error in UPDATE DATA"
+            });
+        }
+        res.status(200).send({
+            success: true,
+            message: "Task updated successfully",
+            // data
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({
+            success: false,
+            message: "Error in Update Task API",
+            error
+        });
+    }
+}
+
+export { getTasks, getTaskById, createTask, updateTask };
