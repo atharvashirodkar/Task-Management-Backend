@@ -1,15 +1,12 @@
 import db from "../config/db.js";
 
-// GET ALL TASK LIST
+// GET ALL TASK LIST WITH PAGINATION IF PAGE NO. IS PROVIDED
 const getTasks = async (req, res) => {
     try {
-        const data = await db.query("SELECT * FROM tasks ");
-        if (!data) {
-            return res.status(404).send({
-                success: false,
-                message: "Task not found"
-            })
-        }
+        const pageNo = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const startIndex = (pageNo - 1) * limit;
+        const data = await db.query(`SELECT * FROM tasks LIMIT ${limit} OFFSET ${startIndex}`);
         res.status(200).send({
             success: true,
             message: "Task List",
