@@ -16,8 +16,9 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 //routes
-app.use("/api/v1/task", require('.routes/taskRoutes'))
-app.get("/test", (req, res) => {
+app.use("/api/v1/task", router)
+
+app.get("/tasks", (req, res) => {
     res.status(200).send('<h1>Nodejs Mysql APP</h1>');
 });
 
@@ -25,17 +26,16 @@ app.get("/test", (req, res) => {
 const PORT = process.env.PORT || 8000;
 
 // conditionally Listen
-mySqlPool.query('SELECT 1').then(() => {
-    // MySQL
-    console.log('MySQL DB Connected...');
-    //listen
-    app.listen(PORT, () => {
-        console.log(`Server is running on port ${process.env.PORT}`);
+mySqlPool
+    .query('SELECT 1')
+    .then(() => {
+        // MySQL
+        console.log('MySQL DB Connected...');
+        //listen
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${process.env.PORT}`);
+        });
+    })
+    .catch((error) => {
+        console.log(error);
     });
-})
-.catch((error) => {
-    console.log(error);
-});
-
-
-
