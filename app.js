@@ -9,14 +9,14 @@ import router from './routes/taskRoutes.js';
 dotenv.config();
 
 //rest objeect 
-const app = express();
+export const app = express();
 
 // middlewares
 app.use(express.json());
 app.use(morgan('dev'));
 
 //routes
-app.use("/api/v1/task", router)
+app.use("/api/v1/tasks", router)
 
 app.get("/tasks", (req, res) => {
     res.status(200).send('<h1>Nodejs Mysql APP</h1>');
