@@ -3,7 +3,7 @@ import express from 'express';
 import morgan from 'morgan';
 import mySqlPool from './config/db.js';
 import router from './routes/taskRoutes.js';
-
+import cors from 'cors';
 
 // configure dotenv
 dotenv.config();
@@ -14,6 +14,7 @@ export const app = express();
 // middlewares
 app.use(express.json());
 app.use(morgan('dev'));
+app.use(cors());
 
 //routes
 app.use("/api/v1/tasks", router)
