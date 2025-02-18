@@ -1,17 +1,21 @@
 import db from "../config/db.js";
 
-// GET ALL TASK LIST WITH PAGINATION IF PAGE NO. IS PROVIDED AND ADD ABILITY TO FILTER TASKS BY TITLE OR STATUS USING QUERY PARAMETERS
+// GET ALL TASK LIST WITH PAGINATION IF PAGE NO. IS PROVIDED AND ADD ABILITY TO FILTER TASKS BY TITLE OR STATUS USING QUERY PARAMETERS ALSO FILTER BY USING DATE 
 const getTasks = async (req, res) => {
     try {
-        const pageNo = parseInt(req.query.page) || 1;
+        const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
-        const startIndex = (pageNo - 1) * limit;
+        const startIndex = (page - 1) * limit;
         const title = req.query.title ? `%${req.query.title}%` : '%';
         const status = req.query.status ? `%${req.query.status}%` : '%';
-
+        const startDate = req.query.from ? new Date(req.query.from) : null;
+        const endDate = req.query.to ? new Date(req.query.to) : null;
         let query = `SELECT * FROM tasks WHERE title LIKE ? AND status LIKE ?`;
         let queryParams = [title, status];
-
+        if (startDate && endDate) {
+            query += ` AND created_at BETWEEN? AND?`;
+            queryParams.push(startDate, endDate);
+        }
         if (req.query.page || req.query.limit) {
             query += ` LIMIT ? OFFSET ?`;
             queryParams.push(limit, startIndex);
@@ -23,7 +27,7 @@ const getTasks = async (req, res) => {
             message: "Task List",
             data: rows,
             totalTasks: rows.length,
-            currentPage: pageNo
+            currentPage: page
         });
     } catch (error) {
         console.error(error);
