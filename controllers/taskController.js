@@ -72,7 +72,6 @@ const getTaskById = async (req, res) => {
 }
 
 //  CREATE TASK
-
 const createTask = async (req, res) => {
     try {
         const { title, description, status } = req.body;
@@ -92,10 +91,11 @@ const createTask = async (req, res) => {
                 message: "Error in INSERT QUERY"
             });
         }
+        // console.log("Data Here: ",data[0].insertId);
         res.status(201).send({
             success: true,
             message: "Task created successfully",
-            data: data.insertId
+            taskId: data[0].insertId
         });
     } catch (error) {
         console.log(error);
@@ -108,12 +108,11 @@ const createTask = async (req, res) => {
 };
 
 // UPDATE TASK
-
 const updateTask = async (req, res) => {
     try {
         const taskId = req.params.taskId;
         if (!taskId) {
-            res.status(404).send({
+            return res.status(404).send({
                 success: false,
                 message: "Invalid or Provide Task Id",
             });
@@ -128,11 +127,13 @@ const updateTask = async (req, res) => {
         }
 
 
-        const data = await db.query(`UPDATE tasks SET title =?, description =?, status =? WHERE id =?`, [title, description, status, taskId]);
-        if (!data) {
-            res.status(500).send({
+        await db.query(`UPDATE tasks SET title =?, description =?, status =? WHERE id =?`, [title, description, status, taskId]);
+        const isData = await db.query(`SELECT * FROM tasks WHERE id =?`, [taskId]);
+        // console.log(isData[0][0]);
+        if (!isData[0][0]) {
+            return res.status(404).send({
                 success: false,
-                message: "Error in UPDATE DATA"
+                message: "Provide Valid Task Id"
             });
         }
         res.status(200).send({
@@ -151,11 +152,12 @@ const updateTask = async (req, res) => {
 }
 
 // DELETE TASK
-
 const deleteTask = async (req, res) => {
     try {
         const taskId = req.params.taskId;
-        if (!taskId) {
+        const isData = await db.query(`SELECT * FROM tasks WHERE id =?`, [taskId]);
+
+        if (!isData[0][0]) {
             return res.status(404).send({
                 success: false,
                 message: "Please Provide Task Id or Valid Task Id",
