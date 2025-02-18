@@ -1,20 +1,36 @@
 import db from "../config/db.js";
 
-// GET ALL TASK LIST WITH PAGINATION IF PAGE NO. IS PROVIDED
+// GET ALL TASK LIST WITH PAGINATION IF PAGE NO. IS PROVIDED AND ADD ABILITY TO FILTER TASKS BY TITLE OR STATUS USING QUERY PARAMETERS ALSO FILTER BY USING DATE 
 const getTasks = async (req, res) => {
     try {
-        const pageNo = parseInt(req.query.page) || 1;
+        const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 5;
-        const startIndex = (pageNo - 1) * limit;
-        const data = await db.query(`SELECT * FROM tasks LIMIT ${limit} OFFSET ${startIndex}`);
+        const startIndex = (page - 1) * limit;
+        const title = req.query.title ? `%${req.query.title}%` : '%';
+        const status = req.query.status ? `%${req.query.status}%` : '%';
+        const startDate = req.query.from ? new Date(req.query.from) : null;
+        const endDate = req.query.to ? new Date(req.query.to) : null;
+        let query = `SELECT * FROM tasks WHERE title LIKE ? AND status LIKE ?`;
+        let queryParams = [title, status];
+        if (startDate && endDate) {
+            query += ` AND created_at BETWEEN? AND?`;
+            queryParams.push(startDate, endDate);
+        }
+        if (req.query.page || req.query.limit) {
+            query += ` LIMIT ? OFFSET ?`;
+            queryParams.push(limit, startIndex);
+        }
+        const [rows] = await db.query(query, queryParams);
+        
         res.status(200).send({
             success: true,
             message: "Task List",
-            totalTasks: data[0].length,
-            data: data[0]
+            data: rows,
+            totalTasks: rows.length,
+            currentPage: page
         });
     } catch (error) {
-        console.log(error);
+        console.error(error);
         res.status(500).send({
             success: false,
             message: "Error in Get All Task API",
@@ -56,7 +72,6 @@ const getTaskById = async (req, res) => {
 }
 
 //  CREATE TASK
-
 const createTask = async (req, res) => {
     try {
         const { title, description, status } = req.body;
@@ -76,10 +91,11 @@ const createTask = async (req, res) => {
                 message: "Error in INSERT QUERY"
             });
         }
+        // console.log("Data Here: ",data[0].insertId);
         res.status(201).send({
             success: true,
             message: "Task created successfully",
-            data: data.insertId
+            taskId: data[0].insertId
         });
     } catch (error) {
         console.log(error);
@@ -92,12 +108,11 @@ const createTask = async (req, res) => {
 };
 
 // UPDATE TASK
-
 const updateTask = async (req, res) => {
     try {
         const taskId = req.params.taskId;
         if (!taskId) {
-            res.status(404).send({
+            return res.status(404).send({
                 success: false,
                 message: "Invalid or Provide Task Id",
             });
@@ -112,11 +127,13 @@ const updateTask = async (req, res) => {
         }
 
 
-        const data = await db.query(`UPDATE tasks SET title =?, description =?, status =? WHERE id =?`, [title, description, status, taskId]);
-        if (!data) {
-            res.status(500).send({
+        await db.query(`UPDATE tasks SET title =?, description =?, status =? WHERE id =?`, [title, description, status, taskId]);
+        const isData = await db.query(`SELECT * FROM tasks WHERE id =?`, [taskId]);
+        // console.log(isData[0][0]);
+        if (!isData[0][0]) {
+            return res.status(404).send({
                 success: false,
-                message: "Error in UPDATE DATA"
+                message: "Provide Valid Task Id"
             });
         }
         res.status(200).send({
@@ -135,11 +152,12 @@ const updateTask = async (req, res) => {
 }
 
 // DELETE TASK
-
 const deleteTask = async (req, res) => {
     try {
         const taskId = req.params.taskId;
-        if (!taskId) {
+        const isData = await db.query(`SELECT * FROM tasks WHERE id =?`, [taskId]);
+
+        if (!isData[0][0]) {
             return res.status(404).send({
                 success: false,
                 message: "Please Provide Task Id or Valid Task Id",
