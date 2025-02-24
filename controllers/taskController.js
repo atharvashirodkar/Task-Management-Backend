@@ -21,7 +21,7 @@ const getTasks = async (req, res) => {
             queryParams.push(limit, startIndex);
         }
         const [rows] = await db.query(query, queryParams);
-        
+
         res.status(200).send({
             success: true,
             message: "Task List",
@@ -34,7 +34,7 @@ const getTasks = async (req, res) => {
         res.status(500).send({
             success: false,
             message: "Error in Get All Task API",
-            error
+            error,
         });
     }
 };
@@ -49,27 +49,28 @@ const getTaskById = async (req, res) => {
                 message: "Invalid or Provide Task Id",
             });
         }
-        const data = await db.query(`SELECT * FROM tasks WHERE id =?`, [taskId]);
-        if (!data[0][0]) {
+
+        const [data] = await db.query(`SELECT * FROM tasks WHERE id = ?`, [taskId]);
+        if (!data[0]) {
             return res.status(404).send({
                 success: false,
-                message: "Task not found"
+                message: "Task not found",
             });
         }
         res.status(200).send({
             success: true,
             message: "Task Details",
-            data: data[0][0]
+            data: data[0],
         });
     } catch (error) {
-        console.log(error);
+        console.error(error);
         res.status(500).send({
             success: false,
             message: "Error in Get Task By Id API",
-            error
+            error,
         });
     }
-}
+};
 
 //  CREATE TASK
 const createTask = async (req, res) => {
@@ -78,7 +79,7 @@ const createTask = async (req, res) => {
         if (!title || !description || !status) {
             return res.status(400).send({
                 success: false,
-                message: "All fields are required"
+                message: "All fields are required",
             });
         }
         const data = await db.query(
@@ -122,24 +123,29 @@ const updateTask = async (req, res) => {
         if (!title && !description && !status) {
             return res.status(400).send({
                 success: false,
-                message: "At least one field is required to update the task"
+                message: "Provide a valid Task Id",
             });
         }
 
-
-        await db.query(`UPDATE tasks SET title =?, description =?, status =? WHERE id =?`, [title, description, status, taskId]);
-        const isData = await db.query(`SELECT * FROM tasks WHERE id =?`, [taskId]);
-        // console.log(isData[0][0]);
-        if (!isData[0][0]) {
+        const [[existingTask]] = await db.query(`SELECT * FROM tasks WHERE id = ?`, [taskId]);
+        if (!existingTask) {
             return res.status(404).send({
                 success: false,
-                message: "Provide Valid Task Id"
+                message: "Task not found",
             });
         }
+        const updatedTitle = title || existingTask.title;
+        const updatedDescription = description || existingTask.description;
+        const updatedStatus = status || existingTask.status;
+
+        await db.query(
+            `UPDATE tasks SET title = ?, description = ?, status = ? WHERE id = ?`,
+            [updatedTitle, updatedDescription, updatedStatus, taskId]
+        );
+
         res.status(200).send({
             success: true,
             message: "Task updated successfully",
-            // data
         });
     } catch (error) {
         console.log(error);
@@ -155,9 +161,9 @@ const updateTask = async (req, res) => {
 const deleteTask = async (req, res) => {
     try {
         const taskId = req.params.taskId;
-        const isData = await db.query(`SELECT * FROM tasks WHERE id =?`, [taskId]);
+        const [[isData]] = await db.query(`SELECT * FROM tasks WHERE id = ?`, [taskId]);
 
-        if (!isData[0][0]) {
+        if (!isData) {
             return res.status(404).send({
                 success: false,
                 message: "Please Provide Task Id or Valid Task Id",
